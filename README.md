@@ -118,6 +118,8 @@ println!("{:?}", resources);
 * [`shred`]: Contains `Resources` type, plus a task dispatcher.
 
 [`anymap`]: https://github.com/chris-morgan/anymap
+[`resman`]: https://github.com/azriel91/resman
+[`better_any`]: https://github.com/luleyleo/better_any
 [`downcast-rs`]: https://github.com/marcianx/downcast-rs
 [`mopa`]: https://github.com/chris-morgan/mopa
 [`rt_map`]: https://github.com/azriel91/rt_map
