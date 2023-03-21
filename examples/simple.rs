@@ -1,16 +1,27 @@
+use better_any::Tid;
+
 use resman::Resources;
 
 #[cfg_attr(feature = "debug", derive(Debug))]
+#[derive(Tid)]
 struct A(u32);
 
 #[cfg_attr(feature = "debug", derive(Debug))]
+#[derive(Tid)]
 struct B(u32);
 
+#[cfg_attr(feature = "debug", derive(Debug))]
+#[derive(Tid)]
+struct C<'a>(&'a A);
+
 fn main() {
+    let owned_a = A(3);
+
     let mut resources = Resources::default();
 
     resources.insert(A(1));
     resources.insert(B(2));
+    resources.insert(C(&owned_a));
 
     // We can validly have two mutable borrows from the `Resources` map!
     let mut a = resources.borrow_mut::<A>();
@@ -28,9 +39,11 @@ fn main() {
     let a_0 = resources.borrow::<A>();
     let _a_1 = resources.borrow::<A>();
     let b = resources.borrow::<B>();
+    let c = resources.borrow::<C>();
 
-    println!("A: {}", a_0.0);
+    println!("A1: {}", a_0.0);
     println!("B: {}", b.0);
+    println!("C: {}", c.0.0);
 
     // Trying to mutably borrow a resource that is already borrowed (immutably
     // or mutably) returns `Err`.
@@ -41,4 +54,6 @@ fn main() {
         "Err"
     };
     println!("a_try_borrow_mut: {}", exists); // prints "Err"
+
+    println!("{resources:?}");
 }

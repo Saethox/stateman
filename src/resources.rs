@@ -4,13 +4,14 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+use better_any::{TidExt};
 use rt_map::{BorrowFail, Cell, RtMap};
 
 use crate::{Entry, Ref, RefMut, Resource};
 
-/// Map from `TypeId` to type.
+/// A set of types (resources), or map from `TypeId` to type.
 #[derive(Default)]
-pub struct Resources(RtMap<TypeId, Box<dyn Resource>>);
+pub struct Resources<'a>(RtMap<TypeId, Box<dyn Resource<'a>>>);
 
 /// A [Resource] container, which provides methods to insert, access and manage
 /// the contained resources.
@@ -23,7 +24,7 @@ pub struct Resources(RtMap<TypeId, Box<dyn Resource>>);
 /// # Resource Ids
 ///
 /// Resources are identified by `TypeId`s, which consist of a `TypeId`.
-impl Resources {
+impl<'a> Resources<'a> {
     /// Creates an empty `Resources` map.
     ///
     /// The map is initially created with a capacity of 0, so it will not
@@ -71,11 +72,11 @@ impl Resources {
     }
 
     /// Returns an entry for the resource with type `R`.
-    pub fn entry<R>(&mut self) -> Entry<R>
-    where
-        R: Resource,
+    pub fn entry<'b, R>(&'b mut self) -> Entry<'b, 'a, R>
+        where
+            R: Resource<'a>,
     {
-        Entry::new(self.0.entry(TypeId::of::<R>()))
+        Entry::new(self.0.entry(R::id()))
     }
 
     /// Inserts a resource into the map. If the resource existed before,
@@ -102,14 +103,14 @@ impl Resources {
     /// resources.insert(MyRes(5));
     /// ```
     pub fn insert<R>(&mut self, r: R)
-    where
-        R: Resource,
+        where
+            R: Resource<'a>,
     {
-        self.0.insert(TypeId::of::<R>(), Box::new(r));
+        self.0.insert(R::id(), Box::new(r));
     }
 
     /// Inserts an already boxed resource into the map.
-    pub fn insert_raw(&mut self, type_id: TypeId, resource: Box<dyn Resource>) {
+    pub fn insert_raw(&mut self, type_id: TypeId, resource: Box<dyn Resource<'a>>) {
         self.0.insert(type_id, resource);
     }
 
@@ -122,22 +123,22 @@ impl Resources {
     /// system will try to access this resource after you removed it (or else
     /// you will get a panic).
     pub fn remove<R>(&mut self) -> Option<R>
-    where
-        R: Resource,
+        where
+            R: Resource<'a>,
     {
         self.0
-            .remove(&TypeId::of::<R>())
-            .map(|x: Box<dyn Resource>| x.downcast())
+            .remove(&R::id())
+            .map(|x: Box<dyn Resource>| x.downcast_box())
             .map(|x: Result<Box<R>, _>| x.ok().unwrap())
             .map(|x| *x)
     }
 
     /// Returns true if the specified resource type `R` exists in `self`.
     pub fn contains<R>(&self) -> bool
-    where
-        R: Resource,
+        where
+            R: Resource<'a>,
     {
-        self.0.contains_key(&TypeId::of::<R>())
+        self.0.contains_key(&R::id())
     }
 
     /// Returns the `R` resource in the resource map.
@@ -150,20 +151,20 @@ impl Resources {
     /// Panics if the resource is being accessed mutably.
     ///
     /// [`try_borrow`]: Self::try_borrow
-    pub fn borrow<R>(&self) -> Ref<R>
-    where
-        R: Resource,
+    pub fn borrow<R>(&self) -> Ref<'_, 'a, R>
+        where
+            R: Resource<'a>,
     {
         self.try_borrow::<R>()
             .unwrap_or_else(Self::borrow_panic::<R, _>)
     }
 
     /// Returns an immutable reference to `R` if it exists, `None` otherwise.
-    pub fn try_borrow<R>(&self) -> Result<Ref<R>, BorrowFail>
-    where
-        R: Resource,
+    pub fn try_borrow<R>(&self) -> Result<Ref<'_, 'a, R>, BorrowFail>
+        where
+            R: Resource<'a>,
     {
-        self.0.try_borrow(&TypeId::of::<R>()).map(Ref::new)
+        self.0.try_borrow(&R::id()).map(Ref::new)
     }
 
     /// Returns a mutable reference to `R` if it exists, `None` otherwise.
@@ -172,37 +173,40 @@ impl Resources {
     ///
     /// Panics if the resource doesn't exist.
     /// Panics if the resource is already accessed.
-    pub fn borrow_mut<R>(&self) -> RefMut<R>
-    where
-        R: Resource,
+    pub fn borrow_mut<R>(&self) -> RefMut<'_, 'a, R>
+        where
+            R: Resource<'a>,
     {
         self.try_borrow_mut::<R>()
             .unwrap_or_else(Self::borrow_panic::<R, _>)
     }
 
     /// Returns a mutable reference to `R` if it exists, `None` otherwise.
-    pub fn try_borrow_mut<R>(&self) -> Result<RefMut<R>, BorrowFail>
-    where
-        R: Resource,
+    pub fn try_borrow_mut<R>(&self) -> Result<RefMut<'_, 'a, R>, BorrowFail>
+        where
+            R: Resource<'a>,
     {
-        self.0.try_borrow_mut(&TypeId::of::<R>()).map(RefMut::new)
+        self.0.try_borrow_mut(&R::id()).map(RefMut::new)
     }
 
     /// Retrieves a resource without fetching, which is cheaper, but only
     /// available with `&mut self`.
-    pub fn get_mut<R: Resource>(&mut self) -> Option<&mut R> {
-        self.get_resource_mut(TypeId::of::<R>())
+    pub fn get_mut<R>(&mut self) -> Option<&mut R>
+        where
+            R: Resource<'a>,
+    {
+        self.get_resource_mut(R::id())
             .map(|res| res.downcast_mut().unwrap())
     }
 
     /// Retrieves a resource without fetching, which is cheaper, but only
     /// available with `&mut self`.
-    pub fn get_resource_mut(&mut self, id: TypeId) -> Option<&mut dyn Resource> {
+    pub fn get_resource_mut(&mut self, id: TypeId) -> Option<&mut dyn Resource<'a>> {
         self.0.get_resource_mut(&id).map(|resource| &mut **resource)
     }
 
     /// Get raw access to the underlying cell.
-    pub fn get_raw(&self, id: &TypeId) -> Option<&Cell<Box<dyn Resource>>> {
+    pub fn get_raw(&self, id: &TypeId) -> Option<&Cell<Box<dyn Resource<'a>>>> {
         self.0.get_raw(id)
     }
 
@@ -223,7 +227,7 @@ impl Resources {
 }
 
 #[cfg(not(feature = "debug"))]
-impl fmt::Debug for Resources {
+impl<'a> fmt::Debug for Resources<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut debug_map = f.debug_map();
 
@@ -240,7 +244,7 @@ impl fmt::Debug for Resources {
 }
 
 #[cfg(feature = "debug")]
-impl fmt::Debug for Resources {
+impl<'a> fmt::Debug for Resources<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut debug_map = f.debug_map();
 
@@ -255,15 +259,15 @@ impl fmt::Debug for Resources {
     }
 }
 
-impl Deref for Resources {
-    type Target = RtMap<TypeId, Box<dyn Resource>>;
+impl<'a> Deref for Resources<'a> {
+    type Target = RtMap<TypeId, Box<dyn Resource<'a>>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for Resources {
+impl<'a> DerefMut for Resources<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -272,15 +276,14 @@ impl DerefMut for Resources {
 #[cfg(test)]
 mod tests {
     use std::any::TypeId;
+    use better_any::Tid;
+
+    use crate::BorrowFail;
 
     use super::Resources;
-    use crate::BorrowFail;
 
     #[test]
     fn entry_or_insert_inserts_value() {
-        #[derive(Debug, PartialEq)]
-        struct A(usize);
-
         let mut resources = Resources::new();
         let mut a_ref = resources.entry::<A>().or_insert(A(1));
 
@@ -298,18 +301,18 @@ mod tests {
     fn debug_uses_placeholder_for_values() {
         let mut resources = Resources::new();
 
-        resources.insert(1u32);
-        resources.insert(2u64);
+        resources.insert(A(0));
+        resources.insert(Res);
 
         let resources_dbg = format!("{:?}", resources);
         assert!(
-            resources_dbg.contains(r#"u32: "..""#),
-            r#"Expected `{}` to contain `u32: ".."`"#,
+            resources_dbg.contains(r#"A: "..""#),
+            r#"Expected `{}` to contain `A: ".."`"#,
             resources_dbg
         );
         assert!(
-            resources_dbg.contains(r#"u64: "..""#),
-            r#"Expected `{}` to contain `u64: ".."`"#,
+            resources_dbg.contains(r#"Res: "..""#),
+            r#"Expected `{}` to contain `Res: ".."`"#,
             resources_dbg
         );
     }
@@ -319,18 +322,18 @@ mod tests {
     fn debug_uses_debug_implementation_for_values() {
         let mut resources = Resources::new();
 
-        resources.insert(1u32);
-        resources.insert(2u64);
+        resources.insert(A(0));
+        resources.insert(Res);
 
         let resources_dbg = format!("{:?}", resources);
         assert!(
-            resources_dbg.contains(r#"u32: 1"#),
-            r#"Expected `{}` to contain `u32: 1`"#,
+            resources_dbg.contains(r#"A: 1"#),
+            r#"Expected `{}` to contain `A: 1`"#,
             resources_dbg
         );
         assert!(
-            resources_dbg.contains(r#"u64: 2"#),
-            r#"Expected `{}` to contain `u64: 2`"#,
+            resources_dbg.contains(r#"Res: 2"#),
+            r#"Expected `{}` to contain `Res: 2`"#,
             resources_dbg
         );
     }
@@ -343,9 +346,6 @@ mod tests {
 
     #[test]
     fn insert() {
-        #[cfg_attr(feature = "debug", derive(Debug))]
-        struct Foo;
-
         let mut resources = Resources::default();
         resources.insert(Res);
 
@@ -355,9 +355,6 @@ mod tests {
 
     #[test]
     fn insert_raw() {
-        #[cfg_attr(feature = "debug", derive(Debug))]
-        struct Foo;
-
         let mut resources = Resources::default();
         resources.insert_raw(TypeId::of::<Res>(), Box::new(Res));
 
@@ -367,7 +364,7 @@ mod tests {
 
     #[test]
     #[should_panic(
-        expected = "Expected to borrow `resman::resources::tests::Res` mutably, but it was already borrowed mutably."
+    expected = "Expected to borrow `resman::resources::tests::Res` mutably, but it was already borrowed mutably."
     )]
     fn read_write_fails() {
         let mut resources = Resources::default();
@@ -405,7 +402,7 @@ mod tests {
 
     #[test]
     #[should_panic(
-        expected = "Expected to borrow `resman::resources::tests::Res`, but it does not exist."
+    expected = "Expected to borrow `resman::resources::tests::Res`, but it does not exist."
     )]
     fn borrow_before_insert_panics() {
         let resources = Resources::default();
@@ -415,7 +412,7 @@ mod tests {
 
     #[test]
     #[should_panic(
-        expected = "Expected to borrow `resman::resources::tests::Res`, but it does not exist."
+    expected = "Expected to borrow `resman::resources::tests::Res`, but it does not exist."
     )]
     fn borrow_mut_before_insert_panics() {
         let resources = Resources::default();
@@ -485,9 +482,16 @@ mod tests {
         let mut resources = Resources::default();
         resources.insert(Res);
 
-        assert!(resources.get_raw(&TypeId::of::<Res>()).is_some());
+        assert!(resources.get_raw(&Res::id()).is_some());
     }
 
-    #[derive(Debug, Default, PartialEq)]
+    #[derive(Debug, Default, PartialEq, Tid)]
     struct Res;
+
+    #[cfg_attr(feature = "debug", derive(Debug))]
+    #[derive(Tid)]
+    struct Foo;
+
+    #[derive(Debug, PartialEq, Tid)]
+    struct A(usize);
 }

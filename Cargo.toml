@@ -17,6 +17,10 @@ features = ["debug", "fn_res", "fn_meta"]
 downcast-rs = "1.2.0"
 fn_meta = { version = "0.7.3", optional = true, features = ["fn_meta_ext"] }
 rt_map = "0.5.2"
+better_any = { version = "0.2.0", features = ["derive"] }
+
+[patch.crates-io]
+better_typeid_derive = { git = "https://github.com/luleyleo/better_any", branch = "no-use-tidable", package = "better_typeid_derive" }
 
 [features]
 default = []
@@ -25,3 +29,8 @@ fn_res = []
 fn_res_once = []
 fn_res_mut = []
 high_arg_count = ["fn_meta/high_arg_count"]
+
+[[example]]
+name = "simple"
+path = "examples/simple.rs"
+required-features = []

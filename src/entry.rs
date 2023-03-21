@@ -2,8 +2,8 @@ use std::{any::TypeId, marker::PhantomData};
 
 use crate::{RefMut, Resource};
 
-pub struct Entry<'a, R> {
-    inner: rt_map::Entry<'a, TypeId, Box<dyn Resource>>,
+pub struct Entry<'a, 'b, R> {
+    inner: rt_map::Entry<'a, TypeId, Box<dyn Resource<'b>>>,
     marker: PhantomData<R>,
 }
 
@@ -24,12 +24,12 @@ pub struct Entry<'a, R> {
 /// let value = rt_map.entry(0).or_insert(Res(4));
 /// println!("{:?}", value.0 * 2);
 /// ```
-impl<'a, R> Entry<'a, R>
+impl<'a, 'b: 'a, R> Entry<'a, 'b, R>
 where
-    R: Resource,
+    R: Resource<'b>,
 {
     /// Create new entry.
-    pub fn new(inner: rt_map::Entry<'a, TypeId, Box<dyn Resource>>) -> Self {
+    pub fn new(inner: rt_map::Entry<'a, TypeId, Box<dyn Resource<'b>>>) -> Self {
         Self {
             inner,
             marker: PhantomData,
@@ -40,13 +40,13 @@ where
     ///
     /// Please note that you should use `or_insert_with` in case the creation of
     /// the value is expensive.
-    pub fn or_insert(self, v: R) -> RefMut<'a, R> {
+    pub fn or_insert(self, v: R) -> RefMut<'a, 'b, R> {
         self.or_insert_with(move || v)
     }
 
     /// Returns this entry's value, inserts and returns the return value of `f`
     /// otherwise.
-    pub fn or_insert_with<F>(self, f: F) -> RefMut<'a, R>
+    pub fn or_insert_with<F>(self, f: F) -> RefMut<'a, 'b, R>
     where
         F: FnOnce() -> R,
     {
