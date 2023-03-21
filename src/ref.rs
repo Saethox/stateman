@@ -21,8 +21,8 @@ impl<'a, 'b, R> Ref<'a, 'b, R> {
 }
 
 impl<'a, 'b, R> Deref for Ref<'a, 'b, R>
-    where
-        R: Resource<'b>,
+where
+    R: Resource<'b>,
 {
     type Target = R;
 
@@ -34,8 +34,8 @@ impl<'a, 'b, R> Deref for Ref<'a, 'b, R>
 }
 
 impl<'a, 'b, R> fmt::Debug for Ref<'a, 'b, R>
-    where
-        R: Resource<'b> + fmt::Debug + 'a,
+where
+    R: Resource<'b> + fmt::Debug + 'a,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let inner: &R = self;
@@ -44,8 +44,8 @@ impl<'a, 'b, R> fmt::Debug for Ref<'a, 'b, R>
 }
 
 impl<'a, 'b, R> PartialEq for Ref<'a, 'b, R>
-    where
-        R: Resource<'b> + PartialEq + 'a,
+where
+    R: Resource<'b> + PartialEq + 'a,
 {
     fn eq(&self, other: &Self) -> bool {
         let r_self: &R = self;

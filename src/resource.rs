@@ -1,4 +1,3 @@
-use std::any::TypeId;
 use std::fmt;
 
 use better_any::Tid;
@@ -15,8 +14,8 @@ pub trait Resource<'a>: Tid<'a> + Send {
 
 #[cfg(not(feature = "debug"))]
 impl<'a, T> Resource<'a> for T
-    where
-        T: Tid<'a> + Send,
+where
+    T: Tid<'a> + Send,
 {
     fn type_name(&self) -> TypeNameLit {
         TypeNameLit(std::any::type_name::<T>())
@@ -35,8 +34,8 @@ pub trait Resource<'a>: Tid<'a> + Send + std::fmt::Debug {
 
 #[cfg(feature = "debug")]
 impl<'a, T> Resource<'a> for T
-    where
-        T: Tid<'a> + std::fmt::Debug + Send + 'a,
+where
+    T: Tid<'a> + std::fmt::Debug + Send + 'a,
 {
     fn type_name(&self) -> TypeNameLit {
         TypeNameLit(std::any::type_name::<T>())

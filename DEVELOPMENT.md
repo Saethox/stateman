@@ -13,7 +13,7 @@ cargo install cargo-nextest
 
 ```bash
 cargo nextest run
-cargo nextest run --features "debug fn_res fn_res_mut fn_res_once"
+cargo nextest run --features "debug"
 ```
 
 

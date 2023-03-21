@@ -4,7 +4,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use better_any::{TidExt};
+use better_any::TidExt;
 use rt_map::{BorrowFail, Cell, RtMap};
 
 use crate::{Entry, Ref, RefMut, Resource};
@@ -33,7 +33,7 @@ impl<'a> Resources<'a> {
     /// # Examples
     ///
     /// ```rust
-    /// use resman::Resources;
+    /// use stateman::Resources;
     /// let mut resources = Resources::new();
     /// ```
     pub fn new() -> Self {
@@ -48,7 +48,7 @@ impl<'a> Resources<'a> {
     /// # Examples
     ///
     /// ```rust
-    /// use resman::Resources;
+    /// use stateman::Resources;
     /// let resources: Resources = Resources::with_capacity(10);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
@@ -63,7 +63,7 @@ impl<'a> Resources<'a> {
     /// # Examples
     ///
     /// ```rust
-    /// use resman::Resources;
+    /// use stateman::Resources;
     /// let resources: Resources = Resources::with_capacity(100);
     /// assert!(resources.capacity() >= 100);
     /// ```
@@ -73,8 +73,8 @@ impl<'a> Resources<'a> {
 
     /// Returns an entry for the resource with type `R`.
     pub fn entry<'b, R>(&'b mut self) -> Entry<'b, 'a, R>
-        where
-            R: Resource<'a>,
+    where
+        R: Resource<'a>,
     {
         Entry::new(self.0.entry(R::id()))
     }
@@ -95,16 +95,18 @@ impl<'a> Resources<'a> {
     /// When you have a resource, simply insert it like this:
     ///
     /// ```rust
-    /// # #[derive(Debug)]
-    /// # struct MyRes(i32);
-    /// use resman::Resources;
+    /// use better_any::Tid;
+    ///
+    /// #[derive(Debug, Tid)]
+    /// struct MyRes(i32);
+    /// use stateman::Resources;
     ///
     /// let mut resources = Resources::default();
     /// resources.insert(MyRes(5));
     /// ```
     pub fn insert<R>(&mut self, r: R)
-        where
-            R: Resource<'a>,
+    where
+        R: Resource<'a>,
     {
         self.0.insert(R::id(), Box::new(r));
     }
@@ -123,8 +125,8 @@ impl<'a> Resources<'a> {
     /// system will try to access this resource after you removed it (or else
     /// you will get a panic).
     pub fn remove<R>(&mut self) -> Option<R>
-        where
-            R: Resource<'a>,
+    where
+        R: Resource<'a>,
     {
         self.0
             .remove(&R::id())
@@ -135,8 +137,8 @@ impl<'a> Resources<'a> {
 
     /// Returns true if the specified resource type `R` exists in `self`.
     pub fn contains<R>(&self) -> bool
-        where
-            R: Resource<'a>,
+    where
+        R: Resource<'a>,
     {
         self.0.contains_key(&R::id())
     }
@@ -152,8 +154,8 @@ impl<'a> Resources<'a> {
     ///
     /// [`try_borrow`]: Self::try_borrow
     pub fn borrow<R>(&self) -> Ref<'_, 'a, R>
-        where
-            R: Resource<'a>,
+    where
+        R: Resource<'a>,
     {
         self.try_borrow::<R>()
             .unwrap_or_else(Self::borrow_panic::<R, _>)
@@ -161,8 +163,8 @@ impl<'a> Resources<'a> {
 
     /// Returns an immutable reference to `R` if it exists, `None` otherwise.
     pub fn try_borrow<R>(&self) -> Result<Ref<'_, 'a, R>, BorrowFail>
-        where
-            R: Resource<'a>,
+    where
+        R: Resource<'a>,
     {
         self.0.try_borrow(&R::id()).map(Ref::new)
     }
@@ -174,8 +176,8 @@ impl<'a> Resources<'a> {
     /// Panics if the resource doesn't exist.
     /// Panics if the resource is already accessed.
     pub fn borrow_mut<R>(&self) -> RefMut<'_, 'a, R>
-        where
-            R: Resource<'a>,
+    where
+        R: Resource<'a>,
     {
         self.try_borrow_mut::<R>()
             .unwrap_or_else(Self::borrow_panic::<R, _>)
@@ -183,8 +185,8 @@ impl<'a> Resources<'a> {
 
     /// Returns a mutable reference to `R` if it exists, `None` otherwise.
     pub fn try_borrow_mut<R>(&self) -> Result<RefMut<'_, 'a, R>, BorrowFail>
-        where
-            R: Resource<'a>,
+    where
+        R: Resource<'a>,
     {
         self.0.try_borrow_mut(&R::id()).map(RefMut::new)
     }
@@ -192,8 +194,8 @@ impl<'a> Resources<'a> {
     /// Retrieves a resource without fetching, which is cheaper, but only
     /// available with `&mut self`.
     pub fn get_mut<R>(&mut self) -> Option<&mut R>
-        where
-            R: Resource<'a>,
+    where
+        R: Resource<'a>,
     {
         self.get_resource_mut(R::id())
             .map(|res| res.downcast_mut().unwrap())
@@ -275,8 +277,8 @@ impl<'a> DerefMut for Resources<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::any::TypeId;
     use better_any::Tid;
+    use std::any::TypeId;
 
     use crate::BorrowFail;
 
@@ -364,7 +366,7 @@ mod tests {
 
     #[test]
     #[should_panic(
-    expected = "Expected to borrow `resman::resources::tests::Res` mutably, but it was already borrowed mutably."
+        expected = "Expected to borrow `stateman::resources::tests::Res` mutably, but it was already borrowed mutably."
     )]
     fn read_write_fails() {
         let mut resources = Resources::default();
@@ -402,7 +404,7 @@ mod tests {
 
     #[test]
     #[should_panic(
-    expected = "Expected to borrow `resman::resources::tests::Res`, but it does not exist."
+        expected = "Expected to borrow `stateman::resources::tests::Res`, but it does not exist."
     )]
     fn borrow_before_insert_panics() {
         let resources = Resources::default();
@@ -412,7 +414,7 @@ mod tests {
 
     #[test]
     #[should_panic(
-    expected = "Expected to borrow `resman::resources::tests::Res`, but it does not exist."
+        expected = "Expected to borrow `stateman::resources::tests::Res`, but it does not exist."
     )]
     fn borrow_mut_before_insert_panics() {
         let resources = Resources::default();

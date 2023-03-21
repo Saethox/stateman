@@ -16,8 +16,8 @@ pub struct RefMut<'a, 'b, R: 'a> {
 }
 
 impl<'a, 'b, R> fmt::Debug for RefMut<'a, 'b, R>
-    where
-        R: Resource<'b> + fmt::Debug + 'a,
+where
+    R: Resource<'b> + fmt::Debug + 'a,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let inner: &R = self;
@@ -26,8 +26,8 @@ impl<'a, 'b, R> fmt::Debug for RefMut<'a, 'b, R>
 }
 
 impl<'a, 'b, R> PartialEq for RefMut<'a, 'b, R>
-    where
-        R: Resource<'b> + PartialEq + 'a,
+where
+    R: Resource<'b> + PartialEq + 'a,
 {
     fn eq(&self, other: &Self) -> bool {
         let r_self: &R = self;
@@ -46,8 +46,8 @@ impl<'a, 'b, R> RefMut<'a, 'b, R> {
 }
 
 impl<'a, 'b, R> Deref for RefMut<'a, 'b, R>
-    where
-        R: Resource<'b>,
+where
+    R: Resource<'b>,
 {
     type Target = R;
 
@@ -59,8 +59,8 @@ impl<'a, 'b, R> Deref for RefMut<'a, 'b, R>
 }
 
 impl<'a, 'b, R> DerefMut for RefMut<'a, 'b, R>
-    where
-        R: Resource<'b>,
+where
+    R: Resource<'b>,
 {
     fn deref_mut(&mut self) -> &mut R {
         self.inner

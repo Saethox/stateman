@@ -1,6 +1,6 @@
 use better_any::Tid;
 
-use resman::Resources;
+use stateman::Resources;
 
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[derive(Tid)]
@@ -43,7 +43,7 @@ fn main() {
 
     println!("A1: {}", a_0.0);
     println!("B: {}", b.0);
-    println!("C: {}", c.0.0);
+    println!("C: {}", c.0 .0);
 
     // Trying to mutably borrow a resource that is already borrowed (immutably
     // or mutably) returns `Err`.
