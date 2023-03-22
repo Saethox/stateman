@@ -329,13 +329,13 @@ mod tests {
 
         let resources_dbg = format!("{:?}", resources);
         assert!(
-            resources_dbg.contains(r#"A: 1"#),
-            r#"Expected `{}` to contain `A: 1`"#,
+            resources_dbg.contains(r#"A: A(0)"#),
+            r#"Expected `{}` to contain `A: A(0)`"#,
             resources_dbg
         );
         assert!(
-            resources_dbg.contains(r#"Res: 2"#),
-            r#"Expected `{}` to contain `Res: 2`"#,
+            resources_dbg.contains(r#"Res: Res"#),
+            r#"Expected `{}` to contain `Res: Res`"#,
             resources_dbg
         );
     }
