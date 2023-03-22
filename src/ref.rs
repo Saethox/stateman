@@ -1,16 +1,18 @@
 use std::{fmt, marker::PhantomData, ops::Deref};
 
+use better_any::TidExt;
+
 use crate::Resource;
 
 /// Reference to a resource.
 #[derive(Clone)]
-pub struct Ref<'a, R: 'a> {
-    inner: rt_map::Ref<'a, Box<dyn Resource>>,
+pub struct Ref<'a, 'b, R: 'a> {
+    inner: rt_map::Ref<'a, Box<dyn Resource<'b>>>,
     phantom: PhantomData<&'a R>,
 }
 
-impl<'a, R> Ref<'a, R> {
-    pub fn new(inner: rt_map::Ref<'a, Box<dyn Resource>>) -> Self {
+impl<'a, 'b, R> Ref<'a, 'b, R> {
+    pub fn new(inner: rt_map::Ref<'a, Box<dyn Resource<'b>>>) -> Self {
         Self {
             inner,
             phantom: PhantomData,
@@ -18,9 +20,9 @@ impl<'a, R> Ref<'a, R> {
     }
 }
 
-impl<'a, R> Deref for Ref<'a, R>
+impl<'a, 'b, R> Deref for Ref<'a, 'b, R>
 where
-    R: Resource,
+    R: Resource<'b>,
 {
     type Target = R;
 
@@ -31,9 +33,9 @@ where
     }
 }
 
-impl<'a, R> fmt::Debug for Ref<'a, R>
+impl<'a, 'b, R> fmt::Debug for Ref<'a, 'b, R>
 where
-    R: Resource + fmt::Debug + 'a,
+    R: Resource<'b> + fmt::Debug + 'a,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let inner: &R = self;
@@ -41,9 +43,9 @@ where
     }
 }
 
-impl<'a, R> PartialEq for Ref<'a, R>
+impl<'a, 'b, R> PartialEq for Ref<'a, 'b, R>
 where
-    R: Resource + PartialEq + 'a,
+    R: Resource<'b> + PartialEq + 'a,
 {
     fn eq(&self, other: &Self) -> bool {
         let r_self: &R = self;
@@ -56,6 +58,7 @@ where
 mod tests {
     use std::fmt::{self, Write};
 
+    use better_any::Tid;
     use rt_map::Cell;
 
     use crate::Resource;
@@ -91,6 +94,6 @@ mod tests {
         Ok(())
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Tid)]
     struct A(usize);
 }

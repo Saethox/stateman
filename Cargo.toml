@@ -1,27 +1,24 @@
 [package]
-name = "resman"
+name = "stateman"
 version = "0.16.0"
-authors = ["Azriel Hoh <azriel91@gmail.com>"]
+authors = ["Jonathan Wurth <jonathan.wurth@uni-a.de>"]
 edition = "2021"
 description = "Runtime managed resource borrowing."
-repository = "https://github.com/azriel91/resman"
-documentation = "https://docs.rs/resman/"
 readme = "README.md"
-keywords = ["data", "share", "lock"]
 license = "MIT OR Apache-2.0"
 
-[package.metadata.docs.rs]
-features = ["debug", "fn_res", "fn_meta"]
-
 [dependencies]
-downcast-rs = "1.2.0"
-fn_meta = { version = "0.7.3", optional = true, features = ["fn_meta_ext"] }
 rt_map = "0.5.2"
+better_any = { version = "0.2.0", features = ["derive"] }
+
+[patch.crates-io]
+better_typeid_derive = { git = "https://github.com/luleyleo/better_any", branch = "no-use-tidable", package = "better_typeid_derive" }
 
 [features]
 default = []
 debug = []
-fn_res = []
-fn_res_once = []
-fn_res_mut = []
-high_arg_count = ["fn_meta/high_arg_count"]
+
+[[example]]
+name = "simple"
+path = "examples/simple.rs"
+required-features = []

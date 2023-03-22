@@ -5,17 +5,19 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+use better_any::TidExt;
+
 pub use crate::Resource;
 
 /// Mutable reference to a resource.
-pub struct RefMut<'a, R: 'a> {
-    inner: rt_map::RefMut<'a, Box<dyn Resource>>,
+pub struct RefMut<'a, 'b, R: 'a> {
+    inner: rt_map::RefMut<'a, Box<dyn Resource<'b>>>,
     phantom: PhantomData<&'a R>,
 }
 
-impl<'a, R> fmt::Debug for RefMut<'a, R>
+impl<'a, 'b, R> fmt::Debug for RefMut<'a, 'b, R>
 where
-    R: Resource + fmt::Debug + 'a,
+    R: Resource<'b> + fmt::Debug + 'a,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let inner: &R = self;
@@ -23,9 +25,9 @@ where
     }
 }
 
-impl<'a, R> PartialEq for RefMut<'a, R>
+impl<'a, 'b, R> PartialEq for RefMut<'a, 'b, R>
 where
-    R: Resource + PartialEq + 'a,
+    R: Resource<'b> + PartialEq + 'a,
 {
     fn eq(&self, other: &Self) -> bool {
         let r_self: &R = self;
@@ -34,8 +36,8 @@ where
     }
 }
 
-impl<'a, R> RefMut<'a, R> {
-    pub fn new(inner: rt_map::RefMut<'a, Box<dyn Resource>>) -> Self {
+impl<'a, 'b, R> RefMut<'a, 'b, R> {
+    pub fn new(inner: rt_map::RefMut<'a, Box<dyn Resource<'b>>>) -> Self {
         Self {
             inner,
             phantom: PhantomData,
@@ -43,9 +45,9 @@ impl<'a, R> RefMut<'a, R> {
     }
 }
 
-impl<'a, R> Deref for RefMut<'a, R>
+impl<'a, 'b, R> Deref for RefMut<'a, 'b, R>
 where
-    R: Resource,
+    R: Resource<'b>,
 {
     type Target = R;
 
@@ -56,9 +58,9 @@ where
     }
 }
 
-impl<'a, R> DerefMut for RefMut<'a, R>
+impl<'a, 'b, R> DerefMut for RefMut<'a, 'b, R>
 where
-    R: Resource,
+    R: Resource<'b>,
 {
     fn deref_mut(&mut self) -> &mut R {
         self.inner
@@ -71,6 +73,7 @@ where
 mod tests {
     use std::fmt::{self, Write};
 
+    use better_any::Tid;
     use rt_map::Cell;
 
     use crate::Resource;
@@ -119,6 +122,6 @@ mod tests {
         Ok(())
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Tid)]
     struct A(usize);
 }
